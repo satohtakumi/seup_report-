@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>レポート一覧</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Hiragino Sans", "Yu Gothic UI", sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* サイドバー */
+    #sidebar {
+      width: 240px;
+      min-width: 240px;
+      background: #1e2530;
+      color: #cdd0d5;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    #sidebar-header {
+      padding: 20px 16px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #7b8591;
+      border-bottom: 1px solid #2d3545;
+      text-transform: uppercase;
+    }
+
+    #report-list {
+      list-style: none;
+      padding: 8px 0;
+    }
+
+    #report-list li a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      color: #cdd0d5;
+      text-decoration: none;
+      font-size: 14px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+
+    #report-list li a:hover {
+      background: #2a3345;
+      color: #fff;
+    }
+
+    #report-list li a.active {
+      background: #2a3345;
+      border-left-color: #4e8ef7;
+      color: #fff;
+    }
+
+    #report-list li a .icon {
+      font-size: 16px;
+      opacity: 0.7;
+    }
+
+    #report-list li a .label {
+      flex: 1;
+    }
+
+    #report-list li a .date {
+      font-size: 11px;
+      color: #5a6476;
+    }
+
+    /* メインエリア */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #toolbar {
+      background: #fff;
+      border-bottom: 1px solid #e0e4ea;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 50px;
+    }
+
+    #current-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1e2530;
+    }
+
+    #open-new-tab {
+      margin-left: auto;
+      font-size: 12px;
+      color: #4e8ef7;
+      text-decoration: none;
+      padding: 5px 12px;
+      border: 1px solid #4e8ef7;
+      border-radius: 4px;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    #open-new-tab:hover {
+      background: #4e8ef7;
+      color: #fff;
+    }
+
+    #viewer {
+      flex: 1;
+      border: none;
+      background: #fff;
+    }
+
+    #welcome {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #8a94a6;
+      gap: 12px;
+    }
+
+    #welcome .big-icon { font-size: 48px; }
+    #welcome p { font-size: 15px; }
+  </style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <div id="sidebar-header">Reports</div>
+  <ul id="report-list">
+    <!-- ▼ 新しいレポートはここに追加 ▼ -->
+    <li>
+      <a href="#" data-src="0309report.html" data-title="2025年03月09日 レポート">
+        <span class="icon">📄</span>
+        <span class="label">03/09 レポート</span>
+        <span class="date">2025-03-09</span>
+      </a>
+    </li>
+    <!-- ▲ 新しいレポートはここに追加 ▲ -->
+  </ul>
+</nav>
+
+<div id="main">
+  <div id="toolbar">
+    <span id="current-title" style="color:#8a94a6;">レポートを選択してください</span>
+    <a id="open-new-tab" href="#" target="_blank" style="display:none;">別タブで開く</a>
+  </div>
+
+  <div id="welcome">
+    <div class="big-icon">📂</div>
+    <p>左のメニューからレポートを選んでください</p>
+  </div>
+  <iframe id="viewer" style="display:none;" title="レポートビューア"></iframe>
+</div>
+
+<script>
+  const links = document.querySelectorAll('#report-list a');
+  const viewer = document.getElementById('viewer');
+  const welcome = document.getElementById('welcome');
+  const currentTitle = document.getElementById('current-title');
+  const openNewTab = document.getElementById('open-new-tab');
+
+  links.forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const src = link.dataset.src;
+      const title = link.dataset.title;
+
+      links.forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+
+      currentTitle.textContent = title;
+      currentTitle.style.color = '#1e2530';
+      openNewTab.href = src;
+      openNewTab.style.display = 'inline';
+
+      viewer.src = src;
+      viewer.style.display = 'block';
+      welcome.style.display = 'none';
+    });
+  });
+</script>
+
+</body>
+</html>
