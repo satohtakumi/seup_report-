@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>配信レポート（3/16時点）</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #1a1a2e;
+    --accent: #e94560;
+    --accent2: #0f3460;
+    --bg: #f5f6fa;
+    --card: #ffffff;
+    --text: #2d3436;
+    --muted: #636e72;
+    --green: #00b894;
+    --red: #e17055;
+    --orange: #fdcb6e;
+    --blue: #0984e3;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, var(--primary), var(--accent2));
+    color: #fff;
+    padding: 36px 40px;
+    border-radius: 16px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    top: -50%; right: -20%;
+    width: 400px; height: 400px;
+    background: rgba(233,69,96,0.12);
+    border-radius: 50%;
+  }
+  .header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; position:relative; z-index:1; }
+  .header .sub { font-size: 14px; opacity: .8; position:relative; z-index:1; }
+
+  /* KPI Cards */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .kpi-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 22px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .kpi-card .value { font-size: 28px; font-weight: 800; }
+  .kpi-card .change { font-size: 12px; margin-top: 6px; font-weight: 600; }
+  .kpi-card .change.bad { color: var(--red); }
+  .kpi-card .change.good { color: var(--green); }
+  .kpi-card .stripe { position: absolute; top:0; left:0; width:100%; height:4px; }
+
+  /* Section */
+  .section {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  }
+  .section h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--bg);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section h2 .icon { font-size: 20px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--primary);
+    color: #fff;
+    padding: 10px 12px;
+    text-align: right;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  thead th:first-child { text-align: left; border-radius: 8px 0 0 0; }
+  thead th:last-child { border-radius: 0 8px 0 0; }
+  tbody td { padding: 10px 12px; text-align: right; border-bottom: 1px solid #f0f0f0; }
+  tbody td:first-child { text-align: left; font-weight: 600; }
+  tbody tr:hover { background: #f8f9ff; }
+  tbody tr:last-child td:first-child { border-radius: 0 0 0 8px; }
+  tbody tr:last-child td:last-child { border-radius: 0 0 8px 0; }
+
+  /* Badge */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-green { background: #e6fff7; color: #00b894; }
+  .badge-red { background: #fff3f0; color: #e17055; }
+  .badge-blue { background: #eef5ff; color: #0984e3; }
+  .badge-orange { background: #fff8e6; color: #e67e22; }
+
+  /* Chart containers */
+  .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .chart-box {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  }
+  .chart-box h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+  .chart-box canvas { max-height: 260px; }
+
+  /* Issue / Action cards */
+  .issue-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .issue-card {
+    border-radius: 12px;
+    padding: 18px 20px;
+    border-left: 4px solid;
+  }
+  .issue-card.problem { background: #fff5f5; border-color: var(--red); }
+  .issue-card.action { background: #f0fff4; border-color: var(--green); }
+  .issue-card.warning { background: #fffbeb; border-color: #f59e0b; }
+  .issue-card .issue-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .issue-card .issue-body { font-size: 13px; color: var(--muted); line-height: 1.7; }
+
+  /* Prediction */
+  .prediction-box {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    color: #fff;
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .prediction-box h2 { color: #fff; border-bottom-color: rgba(255,255,255,.15); }
+  .pred-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .pred-item { background: rgba(255,255,255,.08); border-radius: 10px; padding: 16px; }
+  .pred-item .pred-label { font-size: 12px; opacity: .7; margin-bottom: 4px; }
+  .pred-item .pred-value { font-size: 14px; font-weight: 600; line-height: 1.6; }
+
+  .highlight { color: var(--accent); font-weight: 700; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+  @media (max-width: 768px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .chart-row, .issue-grid, .pred-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>配信レポート</h1>
+    <div class="sub">集計期間：2026年3月9日〜3月15日 ／ レポート作成日：3月16日</div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="stripe" style="background:var(--blue)"></div>
+      <div class="label">消化金額合計</div>
+      <div class="value" style="color:var(--blue)">¥640,790</div>
+      <div class="change" style="color:var(--muted)">週間合計</div>
+    </div>
+    <div class="kpi-card">
+      <div class="stripe" style="background:var(--accent)"></div>
+      <div class="label">CV合計</div>
+      <div class="value" style="color:var(--accent)">64<span style="font-size:14px">件</span></div>
+      <div class="change bad">前週101件 → ▼37%減少</div>
+    </div>
+    <div class="kpi-card">
+      <div class="stripe" style="background:var(--red)"></div>
+      <div class="label">CPA</div>
+      <div class="value" style="color:var(--red)">¥10,012</div>
+      <div class="change bad">前週¥7,559 → ▲32%悪化</div>
+    </div>
+    <div class="kpi-card">
+      <div class="stripe" style="background:var(--green)"></div>
+      <div class="label">CVR / CTR</div>
+      <div class="value" style="font-size:22px"><span style="color:var(--red)">1.30%</span> <span style="font-size:14px;color:var(--muted)">/</span> <span style="color:var(--green)">2.90%</span></div>
+      <div class="change"><span class="bad">CVR▼36%</span>　<span class="good">CTR▲8%</span></div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="chart-row">
+    <div class="chart-box">
+      <h3>📊 日別 消化金額 × CV数</h3>
+      <canvas id="dailyChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>📈 日別 CPA推移</h3>
+      <canvas id="cpaChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Daily Table -->
+  <div class="section">
+    <h2><span class="icon">📅</span> 日別推移</h2>
+    <table>
+      <thead>
+        <tr><th>日付</th><th>消化金額</th><th>CV数</th><th>CPA</th><th>評価</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>3/9（月）</td><td>¥114,966</td><td>16件</td><td>¥7,185</td><td><span class="badge badge-green">良好</span></td></tr>
+        <tr><td>3/10（火）</td><td>¥100,370</td><td>6件</td><td>¥16,728</td><td><span class="badge badge-red">高騰</span></td></tr>
+        <tr><td>3/11（水）</td><td>¥70,943</td><td>9件</td><td>¥7,883</td><td><span class="badge badge-green">良好</span></td></tr>
+        <tr><td>3/12（木）</td><td>¥94,298</td><td>5件</td><td>¥18,860</td><td><span class="badge badge-red">高騰</span></td></tr>
+        <tr><td>3/13（金）</td><td>¥67,379</td><td>10件</td><td>¥6,738</td><td><span class="badge badge-green">最良</span></td></tr>
+        <tr><td>3/14（土）</td><td>¥97,397</td><td>9件</td><td>¥10,822</td><td><span class="badge badge-orange">注意</span></td></tr>
+        <tr><td>3/15（日）</td><td>¥95,437</td><td>9件</td><td>¥10,604</td><td><span class="badge badge-orange">注意</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- CR Performance Chart -->
+  <div class="chart-row">
+    <div class="chart-box">
+      <h3>🏆 CR別 CPA比較（CV発生CR）</h3>
+      <canvas id="crCpaChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>🎯 CR別 CVR比較（CV発生CR）</h3>
+      <canvas id="crCvrChart"></canvas>
+    </div>
+  </div>
+
+  <!-- CR Table -->
+  <div class="section">
+    <h2><span class="icon">🎬</span> クリエイティブ別実績（CV発生順）</h2>
+    <table>
+      <thead>
+        <tr><th>クリエイティブ</th><th>CV</th><th>CPA</th><th>CVR</th><th>備考</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>スタン2</td><td>12</td><td>¥10,912</td><td>0.80%</td><td><span class="badge badge-orange">消化最大 / CTR最高4.11% / CVR低</span></td></tr>
+        <tr><td>スピ3</td><td>12</td><td>¥9,180</td><td>1.24%</td><td><span class="badge badge-blue">安定CV獲得</span></td></tr>
+        <tr><td>仮面</td><td>9</td><td>¥7,135</td><td>1.75%</td><td><span class="badge badge-green">CPA良好・主力CR</span></td></tr>
+        <tr style="background:#f0fff4"><td>動画1修正C</td><td>6</td><td>¥4,267</td><td>7.69%</td><td><span class="badge badge-green">★ 最優秀CPA＆CVR</span></td></tr>
+        <tr><td>公共広告1:1</td><td>5</td><td>¥8,420</td><td>2.42%</td><td></td></tr>
+        <tr><td>洗面台女性修正B</td><td>3</td><td>¥6,851</td><td>3.70%</td><td></td></tr>
+        <tr style="background:#f0fff4"><td>スタン冒頭修正</td><td>3</td><td>¥3,335</td><td>3.70%</td><td><span class="badge badge-green">高CVR・低CPA</span></td></tr>
+        <tr><td>公共広告9:16</td><td>3</td><td>¥9,201</td><td>2.56%</td><td></td></tr>
+        <tr><td>自撮り女性修正C</td><td>2</td><td>¥8,166</td><td>4.65%</td><td></td></tr>
+        <tr><td>教授1</td><td>2</td><td>¥17,283</td><td>0.68%</td><td><span class="badge badge-red">CPA高騰</span></td></tr>
+        <tr style="background:#f0fff4"><td>動画２冒頭p1</td><td>2</td><td>¥3,688</td><td>8.00%</td><td><span class="badge badge-green">★ 最高CVR・消化増テスト推奨</span></td></tr>
+        <tr><td>スタン1</td><td>1</td><td>¥2,300</td><td>7.14%</td><td><span class="badge badge-blue">高CVR</span></td></tr>
+        <tr><td>スタン3</td><td>1</td><td>¥2,666</td><td>4.35%</td><td></td></tr>
+        <tr><td>スタン冒頭修正3</td><td>1</td><td>¥20,679</td><td>0.36%</td><td><span class="badge badge-red">CPA高騰</span></td></tr>
+        <tr><td>公共広告16:9</td><td>1</td><td>¥10,553</td><td>1.92%</td><td></td></tr>
+        <tr><td>冒頭MTGスライド</td><td>1</td><td>¥8,009</td><td>2.04%</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Issues -->
+  <div class="section">
+    <h2><span class="icon">⚠️</span> 現在の問題点</h2>
+    <div class="issue-grid">
+      <div class="issue-card problem">
+        <div class="issue-title">1. CVR大幅悪化（-36%）</div>
+        <div class="issue-body">CVR：2.03% → 1.30%、CPA：¥7,559 → ¥10,012（+32%）。CV数は101件→64件と37%減少。全体パフォーマンスが大きく低下。</div>
+      </div>
+      <div class="issue-card problem">
+        <div class="issue-title">2. 日別CPAの変動幅が大きい</div>
+        <div class="issue-body">¥6,738〜¥18,860と約2.8倍の変動。3/10に¥16,728、3/12に¥18,860と高騰日が発生。学習の安定性に課題。</div>
+      </div>
+      <div class="issue-card problem">
+        <div class="issue-title">3. CV0のCRが18本（全34本中53%）</div>
+        <div class="issue-body">冷蔵庫1修正B（¥16,457）、女性演説（¥14,142）など消化大でCV0が複数。全体で約¥94,000が非効率消化。</div>
+      </div>
+      <div class="issue-card warning">
+        <div class="issue-title">4. 高CVR×低消化CRが未活用</div>
+        <div class="issue-body">動画1修正C（CVR7.69%/消化¥25,602）、動画２冒頭p1（CVR8.00%/消化¥7,375）など高効率CRの消化が少ない。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="section">
+    <h2><span class="icon">🚀</span> 今後の施策提案</h2>
+    <div class="issue-grid">
+      <div class="issue-card action">
+        <div class="issue-title">1. 最優秀CR横展開を最優先</div>
+        <div class="issue-body">動画1修正C（CPA¥4,267/CVR7.69%）を軸にバリエーション2〜3本テスト。冒頭フック違い・テキスト違いで検証。</div>
+      </div>
+      <div class="issue-card action">
+        <div class="issue-title">2. 高CVR×低消化CRの予算増額テスト</div>
+        <div class="issue-body">動画２冒頭p1（CVR8.00%）、スタン1（CVR7.14%）、スタン冒頭修正（CVR3.70%）を別広告セットで予算割り当てテスト。</div>
+      </div>
+      <div class="issue-card action">
+        <div class="issue-title">3. CV0×高消化CRの停止検討</div>
+        <div class="issue-body">冷蔵庫1修正B（¥16,457）、女性演説（¥14,142）、スライド動画2（¥7,466）、教授2（¥6,751）の停止。浮いた予算を高効率CRへ。</div>
+      </div>
+      <div class="issue-card action">
+        <div class="issue-title">4. スタン2のCVR改善検証</div>
+        <div class="issue-body">消化トップ（¥130,943）、CTR4.11%で集客力あり。LP側の検証またはスタン2の遷移先変更テストを推奨。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Algorithm Prediction -->
+  <div class="prediction-box">
+    <h2 style="border-bottom:2px solid rgba(255,255,255,.15); padding-bottom:10px; margin-bottom:16px;"><span class="icon">🔮</span> Metaアルゴリズムの動き予測</h2>
+    <div class="pred-grid">
+      <div class="pred-item">
+        <div class="pred-label">学習フェーズの偏り</div>
+        <div class="pred-value">CTR2.90%に対しCVR1.30%。クリック最適化に偏っている可能性。スタン2はCTR4.11%でクリックは稼げるがCVR低く、学習がクリック寄りになるリスクあり。</div>
+      </div>
+      <div class="pred-item">
+        <div class="pred-label">オークション競合</div>
+        <div class="pred-value">CPM¥3,766は適正水準。ただし公共広告系のCPMが¥4,100〜¥5,300と高め。1:1や9:16フォーマットで競合が強い可能性。</div>
+      </div>
+      <div class="pred-item">
+        <div class="pred-label">クリエイティブ疲弊</div>
+        <div class="pred-value">主力のスタン2・スピ3は消化大で、週後半にCVR低下の兆候に注意。前週からの継続配信CRが多く疲弊リスクが高まっている。</div>
+      </div>
+      <div class="pred-item">
+        <div class="pred-label">今後のCPA予測</div>
+        <div class="pred-value">現状放置 → <span style="color:#e94560">CPA ¥10,000〜¥13,000</span><br>施策実施後 → <span style="color:#00b894">CPA ¥7,000〜¥8,500</span> への改善見込み</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Daily Chart - Spend & CV
+const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+new Chart(dailyCtx, {
+  type: 'bar',
+  data: {
+    labels: ['3/9','3/10','3/11','3/12','3/13','3/14','3/15'],
+    datasets: [
+      {
+        label: '消化金額',
+        data: [114966, 100370, 70943, 94298, 67379, 97397, 95437],
+        backgroundColor: 'rgba(9, 132, 227, 0.2)',
+        borderColor: '#0984e3',
+        borderWidth: 2,
+        borderRadius: 6,
+        yAxisID: 'y'
+      },
+      {
+        label: 'CV数',
+        data: [16, 6, 9, 5, 10, 9, 9],
+        type: 'line',
+        borderColor: '#e94560',
+        backgroundColor: '#e94560',
+        pointBackgroundColor: '#e94560',
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        tension: 0.3,
+        yAxisID: 'y1'
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    scales: {
+      y: { position: 'left', ticks: { callback: v => '¥' + (v/1000).toFixed(0) + 'K' }, grid: { color: '#f0f0f0' } },
+      y1: { position: 'right', min: 0, max: 20, grid: { display: false } }
+    },
+    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } } }
+  }
+});
+
+// CPA Chart
+const cpaCtx = document.getElementById('cpaChart').getContext('2d');
+new Chart(cpaCtx, {
+  type: 'line',
+  data: {
+    labels: ['3/9','3/10','3/11','3/12','3/13','3/14','3/15'],
+    datasets: [
+      {
+        label: 'CPA',
+        data: [7185, 16728, 7883, 18860, 6738, 10822, 10604],
+        borderColor: '#e94560',
+        backgroundColor: 'rgba(233, 69, 96, 0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        pointBackgroundColor: '#e94560'
+      },
+      {
+        label: '前週平均CPA',
+        data: [7559, 7559, 7559, 7559, 7559, 7559, 7559],
+        borderColor: '#00b894',
+        borderDash: [6, 4],
+        pointRadius: 0,
+        borderWidth: 2
+      },
+      {
+        label: '今週平均CPA',
+        data: [10012, 10012, 10012, 10012, 10012, 10012, 10012],
+        borderColor: '#fdcb6e',
+        borderDash: [6, 4],
+        pointRadius: 0,
+        borderWidth: 2
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: { ticks: { callback: v => '¥' + v.toLocaleString() }, grid: { color: '#f0f0f0' } }
+    },
+    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } } }
+  }
+});
+
+// CR CPA Chart
+const crNames = ['動画1修正C','スタン冒頭修正','動画２冒頭p1','スタン1','スタン3','洗面台女性修正B','仮面','公共広告1:1','冒頭MTG','自撮り女性修正C','スピ3','公共広告9:16','スタン2','公共広告16:9','教授1','スタン冒頭修正3'];
+const crCpa = [4267, 3335, 3688, 2300, 2666, 6851, 7135, 8420, 8009, 8166, 9180, 9201, 10912, 10553, 17283, 20679];
+const crColors = crCpa.map(v => v <= 5000 ? '#00b894' : v <= 8000 ? '#0984e3' : v <= 12000 ? '#fdcb6e' : '#e17055');
+
+const crCpaCtx = document.getElementById('crCpaChart').getContext('2d');
+new Chart(crCpaCtx, {
+  type: 'bar',
+  data: {
+    labels: crNames,
+    datasets: [{
+      label: 'CPA',
+      data: crCpa,
+      backgroundColor: crColors,
+      borderRadius: 4
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    scales: {
+      x: { ticks: { callback: v => '¥' + (v/1000).toFixed(0) + 'K' }, grid: { color: '#f0f0f0' } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => 'CPA: ¥' + ctx.raw.toLocaleString() } }
+    }
+  }
+});
+
+// CR CVR Chart
+const cvrNames = ['動画２冒頭p1','動画1修正C','スタン1','自撮り女性修正C','スタン3','スタン冒頭修正','洗面台女性修正B','公共広告9:16','公共広告1:1','冒頭MTG','公共広告16:9','仮面','スピ3','スタン2','教授1','スタン冒頭修正3'];
+const cvrData = [8.00, 7.69, 7.14, 4.65, 4.35, 3.70, 3.70, 2.56, 2.42, 2.04, 1.92, 1.75, 1.24, 0.80, 0.68, 0.36];
+const cvrColors = cvrData.map(v => v >= 5 ? '#00b894' : v >= 3 ? '#0984e3' : v >= 1.5 ? '#fdcb6e' : '#e17055');
+
+const crCvrCtx = document.getElementById('crCvrChart').getContext('2d');
+new Chart(crCvrCtx, {
+  type: 'bar',
+  data: {
+    labels: cvrNames,
+    datasets: [{
+      label: 'CVR',
+      data: cvrData,
+      backgroundColor: cvrColors,
+      borderRadius: 4
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    scales: {
+      x: { ticks: { callback: v => v + '%' }, grid: { color: '#f0f0f0' } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => 'CVR: ' + ctx.raw + '%' } }
+    }
+  }
+});
+</script>
+</body>
+</html>
